@@ -1,7 +1,51 @@
-diff -u -r /c/reactos-master-old/subsystems/mvdm/ntvdm/hardware/cmos.c /c/reactos-master-new/subsystems/mvdm/ntvdm/hardware/cmos.c
---- /c/reactos-master-old/subsystems/mvdm/ntvdm/hardware/cmos.c	2018-08-17 20:13:18 +0000
-+++ /c/reactos-master-new/subsystems/mvdm/ntvdm/hardware/cmos.c	2019-01-10 12:15:15 +0000
-@@ -450,7 +450,7 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 3b66140..3997973 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -1,6 +1,8 @@
+ 
+ cmake_minimum_required(VERSION 3.2.1)
+ cmake_policy(VERSION 3.2.1)
++set(NO_ROSSYM TRUE)
++
+ 
+ if(NOT CMAKE_VERSION MATCHES "ReactOS")
+     message(WARNING "Building with \"${CMAKE_COMMAND}\", which is not the custom CMake included in RosBE, might cause build issues...")
+diff --git a/sdk/cmake/localization.cmake b/sdk/cmake/localization.cmake
+index 220243c..16ea486 100644
+--- a/sdk/cmake/localization.cmake
++++ b/sdk/cmake/localization.cmake
+@@ -1,6 +1,6 @@
+ 
+ if(NOT DEFINED I18N_LANG)
+-    set(I18N_LANG all)
++    set(I18N_LANG en-US)
+ endif()
+ 
+ function(set_i18n_language I18N_LANG)
+diff --git a/subsystems/mvdm/ntvdm/CMakeLists.txt b/subsystems/mvdm/ntvdm/CMakeLists.txt
+index ff102d8..ae8653e 100644
+--- a/subsystems/mvdm/ntvdm/CMakeLists.txt
++++ b/subsystems/mvdm/ntvdm/CMakeLists.txt
+@@ -68,10 +68,12 @@ list(APPEND SOURCE
+ file(GLOB ntvdm_rc_deps res/*.*)
+ add_rc_deps(ntvdm.rc ${ntvdm_rc_deps})
+ 
++
+ add_executable(ntvdm
+     ${SOURCE}
+     ntvdm.rc
+-    ${CMAKE_CURRENT_BINARY_DIR}/ntvdm.def)
++    #${CMAKE_CURRENT_BINARY_DIR}/ntvdm.def
++		)
+ 
+ add_pch(ntvdm ntvdm.h SOURCE)
+ set_module_type(ntvdm win32cui UNICODE IMAGEBASE 0x0F000000)
+diff --git a/subsystems/mvdm/ntvdm/hardware/cmos.c b/subsystems/mvdm/ntvdm/hardware/cmos.c
+index 8482553..dc45c36 100644
+--- a/subsystems/mvdm/ntvdm/hardware/cmos.c
++++ b/subsystems/mvdm/ntvdm/hardware/cmos.c
+@@ -450,7 +450,7 @@ VOID CmosInitialize(VOID)
  
      /* Always open (and if needed, create) a RAM file with shared access */
      SetLastError(0); // For debugging purposes
@@ -10,7 +54,7 @@ diff -u -r /c/reactos-master-old/subsystems/mvdm/ntvdm/hardware/cmos.c /c/reacto
                             GENERIC_READ | GENERIC_WRITE,
                             FILE_SHARE_READ | FILE_SHARE_WRITE,
                             NULL,
-@@ -458,7 +458,8 @@
+@@ -458,7 +458,8 @@ VOID CmosInitialize(VOID)
                             FILE_ATTRIBUTE_NORMAL,
                             NULL);
      DPRINT1("CMOS opening %s (Error: %u)\n", hCmosRam != INVALID_HANDLE_VALUE ? "succeeded" : "failed", GetLastError());
@@ -20,9 +64,10 @@ diff -u -r /c/reactos-master-old/subsystems/mvdm/ntvdm/hardware/cmos.c /c/reacto
      if (hCmosRam != INVALID_HANDLE_VALUE)
      {
          BOOL Success;
-diff -u -r /c/reactos-master-old/subsystems/mvdm/ntvdm/ntvdm.c /c/reactos-master-new/subsystems/mvdm/ntvdm/ntvdm.c
---- /c/reactos-master-old/subsystems/mvdm/ntvdm/ntvdm.c	2018-08-17 20:13:18 +0000
-+++ /c/reactos-master-new/subsystems/mvdm/ntvdm/ntvdm.c	2019-01-10 11:45:59 +0000
+diff --git a/subsystems/mvdm/ntvdm/ntvdm.c b/subsystems/mvdm/ntvdm/ntvdm.c
+index 4e5cd99..c9c2941 100644
+--- a/subsystems/mvdm/ntvdm/ntvdm.c
++++ b/subsystems/mvdm/ntvdm/ntvdm.c
 @@ -12,6 +12,7 @@
  
  #define NDEBUG
@@ -31,7 +76,7 @@ diff -u -r /c/reactos-master-old/subsystems/mvdm/ntvdm/ntvdm.c /c/reactos-master
  
  #include "emulator.h"
  
-@@ -470,11 +471,87 @@
+@@ -470,11 +471,87 @@ PrintMessageAnsi(IN CHAR_PRINT CharPrint,
  #endif
  }
  
@@ -119,10 +164,11 @@ diff -u -r /c/reactos-master-old/subsystems/mvdm/ntvdm/ntvdm.c /c/reactos-master
  
  #ifdef STANDALONE
  
-diff -u -r /c/reactos-master-old/subsystems/mvdm/ntvdm/ntvdm.h /c/reactos-master-new/subsystems/mvdm/ntvdm/ntvdm.h
---- /c/reactos-master-old/subsystems/mvdm/ntvdm/ntvdm.h	2018-08-17 20:13:18 +0000
-+++ /c/reactos-master-new/subsystems/mvdm/ntvdm/ntvdm.h	2019-01-10 12:12:56 +0000
-@@ -49,7 +49,7 @@
+diff --git a/subsystems/mvdm/ntvdm/ntvdm.h b/subsystems/mvdm/ntvdm/ntvdm.h
+index 17dbd8d..e2299ae 100644
+--- a/subsystems/mvdm/ntvdm/ntvdm.h
++++ b/subsystems/mvdm/ntvdm/ntvdm.h
+@@ -49,7 +49,7 @@ DWORD WINAPI SetLastConsoleEventActive(VOID);
   * Activate this line if you want to run NTVDM in standalone mode with:
   * ntvdm.exe <program>
   */
@@ -131,3 +177,23 @@ diff -u -r /c/reactos-master-old/subsystems/mvdm/ntvdm/ntvdm.h /c/reactos-master
  
  /*
   * Activate this line for Win2k compliancy
+diff --git a/subsystems/mvdm/ntvdm/ntvdm.rc b/subsystems/mvdm/ntvdm/ntvdm.rc
+index 431641d..87b7a74 100644
+--- a/subsystems/mvdm/ntvdm/ntvdm.rc
++++ b/subsystems/mvdm/ntvdm/ntvdm.rc
+@@ -11,6 +11,7 @@ LANGUAGE LANG_NEUTRAL, SUBLANG_NEUTRAL
+ #define REACTOS_STR_ORIGINAL_FILENAME   "ntvdm.exe"
+ #include <reactos/version.rc>
+ 
++#if 0
+ /* Icons */
+ 
+ /* Icons for the PC-AT (most recent IBM-PC version) */
+@@ -28,6 +29,7 @@ LANGUAGE LANG_NEUTRAL, SUBLANG_NEUTRAL
+ /* Embedded products */
+ 11 ICON "res/ros_dos.ico"
+ 12 ICON "res/vdm_dos.ico"
++#endif
+ 
+ 
+ /* UTF-8 */
