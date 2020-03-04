@@ -1,0 +1,133 @@
+diff -u -r /c/reactos-master-old/subsystems/mvdm/ntvdm/hardware/cmos.c /c/reactos-master-new/subsystems/mvdm/ntvdm/hardware/cmos.c
+--- /c/reactos-master-old/subsystems/mvdm/ntvdm/hardware/cmos.c	2018-08-17 20:13:18 +0000
++++ /c/reactos-master-new/subsystems/mvdm/ntvdm/hardware/cmos.c	2019-01-10 12:15:15 +0000
+@@ -450,7 +450,7 @@
+ 
+     /* Always open (and if needed, create) a RAM file with shared access */
+     SetLastError(0); // For debugging purposes
+-    hCmosRam = CreateFileW(L"cmos.ram",
++    /*hCmosRam = CreateFileW(L"cmos.ram",
+                            GENERIC_READ | GENERIC_WRITE,
+                            FILE_SHARE_READ | FILE_SHARE_WRITE,
+                            NULL,
+@@ -458,7 +458,8 @@
+                            FILE_ATTRIBUTE_NORMAL,
+                            NULL);
+     DPRINT1("CMOS opening %s (Error: %u)\n", hCmosRam != INVALID_HANDLE_VALUE ? "succeeded" : "failed", GetLastError());
+-
++		*/
++		
+     if (hCmosRam != INVALID_HANDLE_VALUE)
+     {
+         BOOL Success;
+diff -u -r /c/reactos-master-old/subsystems/mvdm/ntvdm/ntvdm.c /c/reactos-master-new/subsystems/mvdm/ntvdm/ntvdm.c
+--- /c/reactos-master-old/subsystems/mvdm/ntvdm/ntvdm.c	2018-08-17 20:13:18 +0000
++++ /c/reactos-master-new/subsystems/mvdm/ntvdm/ntvdm.c	2019-01-10 11:45:59 +0000
+@@ -12,6 +12,7 @@
+ 
+ #define NDEBUG
+ #include <debug.h>
++#include <stdlib.h>
+ 
+ #include "emulator.h"
+ 
+@@ -470,11 +471,87 @@
+ #endif
+ }
+ 
++static
++void* get_dos_exe_sect(int* size)
++{
++	/* get pointer to section table */
++	PIMAGE_DOS_HEADER dosHead = (PIMAGE_DOS_HEADER)GetModuleHandle(0);
++	PIMAGE_NT_HEADERS ntHead = (PIMAGE_NT_HEADERS)((char*)dosHead + dosHead->e_lfanew);
++	PIMAGE_SECTION_HEADER sects = IMAGE_FIRST_SECTION(ntHead);
++	PIMAGE_SECTION_HEADER sendEnd = sects + ntHead->FileHeader.NumberOfSections;
++	
++	/* locate dos section */
++	for(;sects < sendEnd; sects++)
++		if(!strcmp((char*)sects->Name, ".dosEx")) {
++			*size = sects->Misc.VirtualSize;
++			return ((char*)dosHead + sects->VirtualAddress);
++		}
++	return NULL;
++}
++
++
++WCHAR g_embedExeDir[MAX_PATH];
++WCHAR g_embedExeName[MAX_PATH];
++WCHAR* g_embedExeArgs[3];
++
++void embed_delete()
++{
++	DeleteFileW(g_embedExeName);
++	RemoveDirectoryW(g_embedExeDir);
++}
++
++void tempDir(WCHAR* buff)
++{
++	GetTempPathW(MAX_PATH, buff);
++	do{ wsprintfW(buff, L"dex%X", rand());
++	} while(!CreateDirectoryW(g_embedExeDir, NULL));
++}
++
++void embed_check()
++{
++	int dosExSize;
++	void* sect = get_dos_exe_sect(&dosExSize);
++	if(!sect) return;
++
++	/* get temp filename */
++	tempDir(g_embedExeDir);
++	{ WCHAR buff[MAX_PATH];
++	GetModuleFileNameW(NULL, buff, MAX_PATH);
++	wcscpy(g_embedExeName, g_embedExeDir);
++	wcscat(g_embedExeName, wcsrchr(buff, '\\')); }
++	
++	/* write embedded */
++	{ FILE* fp = _wfopen(g_embedExeName, L"wb");
++	fwrite(sect, dosExSize, 1, fp);
++	fclose(fp); }
++
++	/* set arguments */
++	{ WCHAR* argPos = GetCommandLineW();
++	WCHAR endCH = ' ';
++	if(*argPos == '"') { endCH = '"'; argPos++; }
++	while(*argPos && (*argPos++ != endCH));
++	g_embedExeArgs[1] = g_embedExeName;
++	g_embedExeArgs[2] = argPos;
++	NtVdmArgv = g_embedExeArgs;
++	NtVdmArgc = g_embedExeArgs[2] ? 3 : 2;
++	}
++
++	atexit(embed_delete);
++}
++
++
+ INT
+ wmain(INT argc, WCHAR *argv[])
+ {
++	
++
++
+     NtVdmArgc = argc;
+     NtVdmArgv = argv;
++		
++	embed_check();
++	argc = NtVdmArgc;
++	
+ 
+ #ifdef STANDALONE
+ 
+diff -u -r /c/reactos-master-old/subsystems/mvdm/ntvdm/ntvdm.h /c/reactos-master-new/subsystems/mvdm/ntvdm/ntvdm.h
+--- /c/reactos-master-old/subsystems/mvdm/ntvdm/ntvdm.h	2018-08-17 20:13:18 +0000
++++ /c/reactos-master-new/subsystems/mvdm/ntvdm/ntvdm.h	2019-01-10 12:12:56 +0000
+@@ -49,7 +49,7 @@
+  * Activate this line if you want to run NTVDM in standalone mode with:
+  * ntvdm.exe <program>
+  */
+-// #define STANDALONE
++#define STANDALONE
+ 
+ /*
+  * Activate this line for Win2k compliancy
