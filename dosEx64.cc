@@ -29,7 +29,8 @@ int peFile_AddSect(void* data, const char* section_name, int section_size)
 	new_section->SizeOfRawData = align_to_boundary(section_size, nt_headers->OptionalHeader.SectionAlignment);
 	new_section->VirtualAddress = align_to_boundary(last_section->VirtualAddress + last_section->Misc.VirtualSize,
 	nt_headers->OptionalHeader.SectionAlignment);
-	nt_headers->OptionalHeader.SizeOfImage = new_section->VirtualAddress + new_section->Misc.VirtualSize;
+	nt_headers->OptionalHeader.SizeOfImage = align_to_boundary(new_section->VirtualAddress + new_section->Misc.VirtualSize,
+		nt_headers->OptionalHeader.SectionAlignment);
 	nt_headers->FileHeader.NumberOfSections++;
 	
 	return new_section->SizeOfRawData;

@@ -111,8 +111,8 @@ index 4e5cd99..c9c2941 100644
 +
 +void tempDir(WCHAR* buff)
 +{
-+	GetTempPathW(MAX_PATH, buff);
-+	do{ wsprintfW(buff, L"dex%X", rand());
++	int len = GetTempPathW(MAX_PATH, buff);
++	do{ wsprintfW(buff+len, L"dex%X", rand());
 +	} while(!CreateDirectoryW(g_embedExeDir, NULL));
 +}
 +
