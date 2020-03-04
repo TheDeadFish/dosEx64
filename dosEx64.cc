@@ -64,15 +64,15 @@ int main(int argc, char* argv[])
 		
 	// ammend exe header
 	memcpy(file1.data+64, peSig, 60);
-	RI(file1.data,124) = file1.size;
+	RI(file1.data,124) = file1.len;
 	int size = peFile_AddSect(file1.data, 
-		".dosEx", file2.size);
+		".dosEx", file2.len);
 	
 	// write output file
 	FILE* fp = fopen(outName, "wb");
-	fwrite(file1.data, file1.size, 1, fp);
-	fwrite(file2.data, file2.size, 1, fp);
-	int extraSize = ftell(fp)+(size-file2.size);
+	fwrite(file1.data, file1.len, 1, fp);
+	fwrite(file2.data, file2.len, 1, fp);
+	int extraSize = ftell(fp)+(size-file2.len);
 	ftruncate(fileno(fp), extraSize);
 	fclose(fp);
 }
